@@ -2,9 +2,8 @@ from game import Game
 
 # Player on the server 
 class Player(object):
-  def __init__(self, name, ip_address):
+  def __init__(self, name):
     self.name = name
-    self.ip_address = ip_address
     self.score = 0
     self.game = None 
 

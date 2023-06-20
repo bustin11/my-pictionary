@@ -116,7 +116,7 @@ class Server(object):
         player.attach_game(new_game)
 
 
-  def authenticate(self, connection, address):
+  def authenticate(self, connection):
     try:
       data = connection.recv(1024)
       name = str(data.decode())
@@ -125,7 +125,7 @@ class Server(object):
         raise Exception("Name f{name} too short")
       
       connection.sendall(f"Repeating your name: {name}".encode())
-      new_player = Player(name, address)
+      new_player = Player(name)
       self.add_to_queue(new_player)
       threading.Thread(target=self.player_thread, args=(connection,new_player)).start()
 
@@ -156,7 +156,7 @@ class Server(object):
       logging.info(f'Connection from {address}')
       
       # 5 authenticate the connection
-      self.authenticate(connection, address)
+      self.authenticate(connection)
 
 
 
