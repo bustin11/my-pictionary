@@ -1,4 +1,5 @@
 class Msg():
+  START = -1
   GUESS = 0
   GET_CHAT_BOX = 1
   GRAB_SCREEN = 2

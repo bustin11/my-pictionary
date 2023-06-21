@@ -2,21 +2,22 @@
 
 
 class Screen(object):
-  WIDTH = HEIGHT = 512
-  LINE_THICKNESS = 3 # 2*_FONT_SIZE+1 is the width of each draw
+  ROWS = COLS = 128
+  WIDTH = HEIGHT = 512 # not needed, same as client
+  LINE_THICKNESS = 1 # not needed, same as client
 
   def __init__(self):
     self.clear_screen()
 
   def blank_screen(self):
-    return [[0] * self.WIDTH for _ in range(self.HEIGHT)]
+    return [[0] * self.COLS for _ in range(self.ROWS)]
 
   def clear_screen(self):
     self._screen = self.blank_screen()
 
   def update_screen(self, x, y, color):
     for (i, j) in self.neighbors(x, y):
-      if 0 <= i < self.HEIGHT and 0 <= j < self.WIDTH:
+      if 0 <= i < self.ROWS and 0 <= j < self.COLS:
         self._screen[i][j] = color
 
   def neighbors(self, x, y):
@@ -27,7 +28,7 @@ class Screen(object):
     return neighbors
 
   def bucket_fill(self, x, y, color):
-    pass 
+    raise NotImplementedError()
 
   def get_screen(self):
     return self._screen

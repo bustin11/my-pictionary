@@ -3,6 +3,7 @@ import json
 import time as t
 import pytest 
 from msg import Msg
+from server import Server
 
 class ServerTester:
   SERVER_IP = '127.0.0.1'
@@ -44,8 +45,23 @@ class ServerTester:
     self.connection.close()
 
 
-network = ServerTester("Bustin")
 msg = Msg()
+networks = []
+for i in range(Server.NUM_PLAYERS-1):
+  networks.append(ServerTester("Bustin" + str(i+1)))
+  response = networks[i].send({-1: []})
+  response = list(response.values())[0]
+  assert(not response)
+# wait for last player to connect
+t.sleep(1)
+networks.append(ServerTester("Bustin" + str(Server.NUM_PLAYERS)))
+
+# arbitaryily pick the first player
+network = networks[0]
+response = network.send({-1: []})
+response = list(response.values())[0]
+
+assert(response == 1)
 
 print("Testing Guess")
 out = network.send({msg.GUESS:["banana"]})

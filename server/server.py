@@ -3,6 +3,7 @@ import socket
 from player import Player
 from game import Game
 from msg import Msg
+from collections import defaultdict
 import logging
 import json
 import sys
@@ -15,7 +16,7 @@ logging.root.name = "Server"
 
 
 class Server(object):
-  NUM_PLAYERS = 1
+  NUM_PLAYERS = 2
   SERVER_IP = '127.0.0.1'
   SERVER_PORT = 5005
   END_MARKER = "#"
@@ -24,6 +25,7 @@ class Server(object):
     self.queue = []
     self.game_id = 0
     self.MSG = Msg()
+    self.screen_updated = defaultdict(dict)
 
   # per player thread to update the server state 
   def player_thread(self, connection, player):
@@ -38,24 +40,27 @@ class Server(object):
           break
 
         logging.info(f'Received {data} from {player.name}')
-
+        print(self.screen_updated)
         package = {}
-        curr_screen = player.game.screen.get_screen()
     
         for key in data:
           key = int(key)
+          if key == Msg.START:
+            package[key] = player.game is not None
+
           if player.game: # player has not disconnected at this point
             if key == self.MSG.GUESS:  # guess
-              correct = player.game.make_player_guess(player, data[str(key)][0])
-              package[0] = correct
+              correct = player.game.make_player_guess(player, data[str(key)][key])
+              package[key] = correct
 
             elif key == self.MSG.GET_CHAT_BOX:
-              package[1] = player.game.current_round.chat_box.get_chat()
+              package[key] = player.game.current_round.chat_box.get_chat()
 
             elif key == self.MSG.GRAB_SCREEN:
-              # if curr_screen != player.game.screen.get_screen():
-              curr_screen = player.game.screen.get_screen()
-              package[key] = curr_screen
+              print(self.screen_updated)
+              if self.screen_updated[player.game.game_id][player.name]:
+                package[key] = player.game.screen.get_screen()
+                self.screen_updated[player.game.game_id][player.name] = False
 
             elif key == self.MSG.GET_SCORE:
               package[key] = player.game.get_scores()
@@ -70,9 +75,11 @@ class Server(object):
               package[key] = player.game.current_round.current_word
 
             elif key == self.MSG.DRAW:
-              if player.game.players[player.game.drawing_player_id] == player:
+              if player.game.players[player.game.drawing_player_id] == player: # safety check
                 color, x, y = data[str(key)]
                 player.game.update_screen(x, y, color)
+                for p in player.game.players:
+                  self.screen_updated[player.game.game_id][p.name] = True
 
             elif key == self.MSG.TIME_LEFT:
               package[key] = player.game.current_round.time_left
@@ -89,11 +96,14 @@ class Server(object):
           logging.info(f'Sending {package} to player {player.name}')
         msg = json.dumps(package)
         connection.sendall(msg.encode() + "#".encode())
-      except Exception as e:
+      # catch socket exception
+
+      except socket.error as e:
         logging.error(e)
         break
         
     if player.game:
+      del self.screen_updated[player.game.game_id][player.name]
       player.game.player_disconnected(player)
     
     if player in self.queue:
@@ -101,12 +111,21 @@ class Server(object):
 
     logging.info(f'Player {player.name} disconnected')
 
+  def rename(self, name):
+    for player in self.queue[:min(self.NUM_PLAYERS, len(self.queue))]:
+      logging.info(f'Player {name} is already in queue, renaming to {player}')
+      if name == player.name:
+        name = name + '1'
+    return name
+
   def add_to_queue(self, player):
     self.queue.append(player)
     if (len(self.queue) == self.NUM_PLAYERS):
       players = []
+      self.screen_updated[self.game_id]
       for i in range(self.NUM_PLAYERS):
         players.append(self.queue[0])
+        self.screen_updated[self.game_id][self.queue[0].name] = False
         self.queue.pop(0)
 
       new_game = Game(players, self.game_id)
@@ -114,6 +133,9 @@ class Server(object):
       self.game_id += 1
       for player in players:
         player.attach_game(new_game)
+      return True
+
+    return False
 
 
   def authenticate(self, connection):
@@ -123,10 +145,11 @@ class Server(object):
       logging.info(f'Authenticating player {name}')
       if len(name) < 3:
         raise Exception("Name f{name} too short")
-      
-      connection.sendall(f"Repeating your name: {name}".encode())
+
+      name = self.rename(name)
       new_player = Player(name)
-      self.add_to_queue(new_player)
+      self.add_to_queue(new_player)      
+      connection.sendall(f"{name}".encode())
       threading.Thread(target=self.player_thread, args=(connection,new_player)).start()
 
     except Exception as e:

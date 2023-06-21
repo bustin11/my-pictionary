@@ -25,7 +25,7 @@ class Game(object):
     self.round_number += 1
     self.drawing_player_id += 1
     random_word = self.generate_random_word_from_file('words.txt')
-    self.current_round = Round(random_word, self.round_number, self.players[self.drawing_player_id], self)
+    self.current_round = Round(random_word.lower(), self.round_number, self.players[self.drawing_player_id], self)
 
   def generate_random_word_from_file(self, file_path):
     words_list = []
@@ -38,10 +38,16 @@ class Game(object):
     return random.choice(words_list)
 
   def end_round(self):
-    self.current_round.end_round("Round f{self.round_number} has ended")
+    self.current_round.end_round(f"Round {self.round_number} has ended")
         
   def make_player_guess(self, player, guess):
-    return self.current_round.make_player_guess(player, guess)
+    if self.current_round.make_player_guess(player, guess):
+      self.end_round()
+      if (self.round_number == len(self.players)):
+        self.end_game()
+      self.begin_round()
+      return True
+    return False 
 
   def player_disconnected(self, player):
     self.current_round.player_disconnected(player)
