@@ -18,7 +18,7 @@ class Leaderboard(object):
     self.rank_font = pygame.font.SysFont("Arial", 25)
 
   def render(self, window):
-    scores = [(player.name, player.score) for player in self.players]
+    scores = [(player.name, player.score) for player in self.players] # this updaetes the scores based on the players
     scores.sort(key=lambda x: -x[1])
 
     for i, score in enumerate(scores):

@@ -1,6 +1,9 @@
 import socket
 import json 
-
+import pygame
+from game import Game
+from msg import Msg
+import time as t
 
 class Client(object):
 
@@ -17,13 +20,13 @@ class Client(object):
       self.client.sendall(self.name.encode())
       received = self.client.recv(1024).decode()
       print("Connected to server")
-      print(received)
+      return received
     except Exception as e:
       print(e)
 
-  def send(self, code, message):
+  def send(self, message):
     try:
-      self.client.sendall(json.dumps({code : message}).encode())
+      self.client.sendall(json.dumps(message).encode())
       received = ""
       while True:
         last = self.client.recv(1024).decode()
@@ -33,10 +36,23 @@ class Client(object):
             break
         except:
           pass
-      return received
+      return json.loads(received[:-1])
     except Exception as e:
       print(e)
 
 if __name__ == '__main__':
+  pygame.font.init()
   client = Client('Bustin')
-  client.connect()
+  name = client.connect() # can be different if two names exist
+  print('Your name is ' + name)
+
+  response = list(client.send({Msg.START : []}).values())[0]
+  print("Waiting for other players to join")
+  while not response:
+    t.sleep(.1)
+    response = list(client.send({Msg.START : []}).values())[0]
+        
+    
+  players = client.send({Msg.GET_PLAYERS : []})
+  game = Game(name, players, client)
+  game.run()

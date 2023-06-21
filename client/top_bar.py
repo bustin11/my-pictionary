@@ -53,3 +53,9 @@ class TopBar(object):
 
   def set_round(self, round):
     self.round = round
+
+  def set_max_round(self, max_round):
+    self.max_round = max_round
+
+  def set_time(self, time):
+    self.time = time

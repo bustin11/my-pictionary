@@ -13,9 +13,13 @@ class ChatBox(object):
     self.chat_history = []
     self.dh = self.height / self.MAX_NUM
     self.font = pygame.font.SysFont("comicsans", 20)
+    self.typed = ""
 
   def add_message(self, message):
     self.chat_history.append(message) 
+
+  def replace(self, message):
+    self.chat_history = message
   
   def get_messages(self):
     return self.chat_history
@@ -50,5 +54,16 @@ class ChatBox(object):
       text = self.font.render(message, 1, (0,0,0))
       window.blit(text, (self.dx + self.BORDER_WIDTH, self.dy + self.BORDER_WIDTH + i * self.dh - text.get_height()))
 
-  
-    
+    pygame.draw.rect(window, (150,150,150), (self.dx, self.dy + self.BORDER_WIDTH + self.height, self.width, self.dh))
+    text = self.font.render(self.typed, 1, (0,0,0))
+    window.blit(text, (self.dx + self.BORDER_WIDTH, self.dy + self.BORDER_WIDTH + self.height))
+
+  def type(self, key_name):
+    if key_name == "space":
+        self.typed += " "
+    elif key_name == "backspace":
+      if len(self.typed) > 0:
+        self.typed.pop()
+    elif len(key_name) == 1:
+        self.typed += key_name
+

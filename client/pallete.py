@@ -10,6 +10,7 @@ class Pallete(object):
     self.width = width
     self.height = height
     self.colors = colors
+    del self.colors[0] # remove the eraser color
     self.game = game
     self.dh = int(len(colors)**.5)
     self.dw = int(len(colors)/self.dh)
@@ -19,7 +20,7 @@ class Pallete(object):
     self.init_colors(colors)
 
   def init_colors(self, colors):
-    for i, color in enumerate(self.colors):
+    for i, color in enumerate(self.colors.values()):
       x = i // self.dw
       y = i % self.dw
       self.buttons[y][x] = Button(self.dx + x * self.width / 3, self.dy + y * self.height / 3, self.width / 3, self.height / 3, color, border_color=None)
@@ -29,7 +30,7 @@ class Pallete(object):
     pygame.draw.rect(window, (0,0,0), 
       (self.dx - self.BORDER_WIDTH/2, self.dy - self.BORDER_WIDTH/2, 
       self.width + self.BORDER_WIDTH, self.height + self.BORDER_WIDTH), self.BORDER_WIDTH)
-    for i, color in enumerate(self.colors):
+    for i, color in enumerate(self.colors. values()):
       x = i // self.dw
       y = i % self.dw
       pygame.draw.rect(window, color, \
@@ -51,7 +52,5 @@ class Pallete(object):
 
     if self.eraser.pressed(coord):
       self.game.draw_color = (200,200,200) # background for the screen color
-
-    print(self.game.draw_color)
 
 
