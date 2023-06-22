@@ -8,6 +8,8 @@ class ChatBox(object):
   def add_message(self, message):
     with self.chat_history_lock:
       self.chat_history.append(message) 
+      if (len(self.chat_history) > 20):
+        self.chat_history = self.chat_history[-20:]
   
   def get_messages(self):
     with self.chat_history_lock:

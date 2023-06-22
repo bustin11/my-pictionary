@@ -11,3 +11,4 @@ class Msg():
   CLEAR = 8
   TIME_LEFT = 9
   DRAWING_PLAYER = 10
+  CLEAR_SCREEN = 11

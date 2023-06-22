@@ -7,6 +7,7 @@ from collections import defaultdict
 import logging
 import json
 import sys
+import time as t
 
 logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -16,22 +17,30 @@ logging.root.name = "Server"
 
 
 class Server(object):
-  NUM_PLAYERS = 2
+  NUM_PLAYERS = 3
   SERVER_IP = '127.0.0.1'
   SERVER_PORT = 5005
   END_MARKER = "#"
 
   def __init__(self):
     self.queue = []
-    self.game_id = 0
+    self.game_id = -1
     self.MSG = Msg()
     self.screen_updated = defaultdict(dict)
+    self.barrier = {}
+
+  def notify_screen_update(self, game):
+    for p in game.players:
+      self.screen_updated[game.game_id][p.name] = True
 
   # per player thread to update the server state 
   def player_thread(self, connection, player):
 
     while True:
       try:
+        if player.game and player.game.game_over:
+          t.sleep(0.1)
+          continue
         try:
           data = connection.recv(1024)
           data = data.decode()
@@ -40,30 +49,48 @@ class Server(object):
           break
 
         logging.info(f'Received {data} from {player.name}')
-        print(self.screen_updated)
         package = {}
     
+        old_round = None
+        if player.game and player.game.round_has_ended():
+          if len(player.game.players) == player.game.round_number:
+            i = self.barrier[player.game.game_id].wait()
+            if i == 0:
+              player.game.end_game()
+            self.barrier[player.game.game_id].wait()  
+            package[-2] = player.game.game_over
+          else:
+            i = self.barrier[player.game.game_id].wait()
+            old_round = player.game.current_round
+            if i == 0:
+              player.game.screen.clear_screen()
+              self.notify_screen_update(player.game)
+              player.game.begin_round()
+
         for key in data:
           key = int(key)
           if key == Msg.START:
             package[key] = player.game is not None
 
           if player.game: # player has not disconnected at this point
-            if key == self.MSG.GUESS:  # guess
-              correct = player.game.make_player_guess(player, data[str(key)][key])
+
+            if key == self.MSG.GUESS and not player.game.game_over:  # guess
+              correct = player.make_guess(data[str(key)][key])
               package[key] = correct
 
             elif key == self.MSG.GET_CHAT_BOX:
               package[key] = player.game.current_round.chat_box.get_chat()
 
             elif key == self.MSG.GRAB_SCREEN:
-              print(self.screen_updated)
               if self.screen_updated[player.game.game_id][player.name]:
                 package[key] = player.game.screen.get_screen()
                 self.screen_updated[player.game.game_id][player.name] = False
 
             elif key == self.MSG.GET_SCORE:
-              package[key] = player.game.get_scores()
+              if old_round:
+                package[key] = old_round.get_scores()
+              else:
+                package[key] = player.game.get_scores()
 
             elif key == self.MSG.GET_PLAYERS:
               package[key] = [player.name for player in player.game.players]
@@ -78,8 +105,7 @@ class Server(object):
               if player.game.players[player.game.drawing_player_id] == player: # safety check
                 color, x, y = data[str(key)]
                 player.game.update_screen(x, y, color)
-                for p in player.game.players:
-                  self.screen_updated[player.game.game_id][p.name] = True
+                self.notify_screen_update(player.game)
 
             elif key == self.MSG.TIME_LEFT:
               package[key] = player.game.current_round.time_left
@@ -89,6 +115,12 @@ class Server(object):
 
             elif key == self.MSG.DRAWING_PLAYER:          
               package[key] = player.is_drawing()
+
+            elif key == self.MSG.CLEAR_SCREEN:
+              print('clearing screen')
+              player.game.screen.clear_screen()
+              package[key] = player.game.screen.get_screen()
+              self.notify_screen_update(player.game)
 
         if self.MSG.GRAB_SCREEN in package:
           logging.info(f'updating board to player {player.name}')
@@ -122,15 +154,15 @@ class Server(object):
     self.queue.append(player)
     if (len(self.queue) == self.NUM_PLAYERS):
       players = []
-      self.screen_updated[self.game_id]
+      self.game_id += 1
       for i in range(self.NUM_PLAYERS):
         players.append(self.queue[0])
         self.screen_updated[self.game_id][self.queue[0].name] = False
+        self.barrier[self.game_id] = threading.Barrier(self.NUM_PLAYERS, timeout=5)
         self.queue.pop(0)
 
       new_game = Game(players, self.game_id)
       logging.info(f'New game {self.game_id} created')
-      self.game_id += 1
       for player in players:
         player.attach_game(new_game)
       return True
@@ -152,7 +184,7 @@ class Server(object):
       connection.sendall(f"{name}".encode())
       threading.Thread(target=self.player_thread, args=(connection,new_player)).start()
 
-    except Exception as e:
+    except socket.error as e:
       logging.error(e)
       connection.sendall(str(e.args[0]).encode())
       connection.close()

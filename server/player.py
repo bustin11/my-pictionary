@@ -13,8 +13,11 @@ class Player(object):
   def update_score(self, dx):
     self.score += dx 
 
+  def set_score(self, x):
+    self.score = x
+
   def make_guess(self, guess):
-    return self.game.player_make_guess(self, guess)
+    return self.game.make_player_guess(self, guess)
 
   def is_drawing(self):
     return self.game.players[self.game.drawing_player_id] == self
