@@ -4,7 +4,7 @@ import pygame
 class TopBar(object):
   BORDER_WIDTH = 2
 
-  def __init__(self, dx, dy, width, height, max_round=8, time=60, drawing=False):
+  def __init__(self, dx, dy, width, height, max_round=8, time=60):
     self.dx = dx
     self.dy = dy
     self.width = width
@@ -13,7 +13,6 @@ class TopBar(object):
     self.word = ""
     self.round = 0
     self.time = time
-    self.drawing = drawing
     self.font = pygame.font.SysFont('Arial', 20)
 
   def render(self, window):
@@ -25,11 +24,7 @@ class TopBar(object):
     window.blit(text, (self.dy + 10, self.dx + self.height/2 - text.get_height()/2))
 
     # word
-    if self.drawing:
-      word = self.word
-    else:
-      word = TopBar.underscore_text(self.word)
-
+    word = self.word
     text = self.font.render(word, 1, (0,0,0))
     window.blit(text, (self.dy + self.width/2 - text.get_width()/2, self.dx + self.height/2 - text.get_height()/2 + 10)) # centralize
 
@@ -48,8 +43,11 @@ class TopBar(object):
         new_str += "   "
     return new_str
 
-  def set_word(self, word):
-    self.word = word
+  def set_word(self, word, hidden=True):
+    if not hidden:
+      self.word = word
+    else:
+      self.word = TopBar.underscore_text(word)
 
   def set_round(self, round):
     self.round = round

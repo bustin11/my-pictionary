@@ -63,7 +63,7 @@ class ChatBox(object):
         self.typed += " "
     elif key_name == "backspace":
       if len(self.typed) > 0:
-        self.typed.pop()
+        self.typed = self.typed[:-1]
     elif len(key_name) == 1:
         self.typed += key_name
 

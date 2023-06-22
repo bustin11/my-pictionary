@@ -1,4 +1,5 @@
 from button import *
+from msg import Msg
 
 class Pallete(object):
 
@@ -49,6 +50,8 @@ class Pallete(object):
 
     if self.clear_button.pressed(coord):
       self.game.screen.clear_screen()
+      print('here')
+      self.game.connection.send({Msg.CLEAR_SCREEN : []})
 
     if self.eraser.pressed(coord):
       self.game.draw_color = (200,200,200) # background for the screen color

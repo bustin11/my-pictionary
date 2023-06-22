@@ -53,6 +53,6 @@ if __name__ == '__main__':
     response = list(client.send({Msg.START : []}).values())[0]
         
     
-  players = client.send({Msg.GET_PLAYERS : []})
+  players = list(client.send({Msg.GET_PLAYERS : []}).values())[0]
   game = Game(name, players, client)
   game.run()

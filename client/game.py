@@ -8,7 +8,10 @@ from pallete import Pallete
 from chat_box import ChatBox
 from msg import Msg
 import copy
+'''
+TODO: fix the clearing function
 
+'''
 
 class Game:
     BG = (0,	115,	207)
@@ -56,9 +59,10 @@ class Game:
 
       self.draw_color = (0,0,0)
       self.drawing = False
+      self.game_ended = False
 
       self.players = []
-      for name in list(players.values())[0]:
+      for name in players:
         self.add_player(name)
       self.name = player_name
       self.top_bar.set_max_round(len(self.players))
@@ -69,6 +73,7 @@ class Game:
       self.draw_color = (0,0,0)
 
     def add_player(self, name):
+      print(name)
       print("adding player {name}".format(name=name))
       self.players.append(Player(name))
       self.leaderboard.add_player(Player(name))
@@ -93,12 +98,14 @@ class Game:
       coord = self.screen.translate(mouse)
       if coord and self.drawing:
         self.screen.update_screen(*coord, self.draw_color)
-        self.connection.send({Msg.DRAW: [self.INV_COLORS[self.draw_color], int(coord[1]), int(coord[0])]})
+        if self.connection and not self.game_ended:
+          self.connection.send({Msg.DRAW: [self.INV_COLORS[self.draw_color], int(coord[1]), int(coord[0])]})
 
     def handle_key(self, event):
-      if not self.drawing: # can only guess if not drawing
+      if not self.drawing or True: # can only guess if not drawing
         if event.key == pygame.K_RETURN:
-          self.connection.send({Msg.GUESS, [self.chat_box.typed]})
+          if self.connection and not self.game_ended:
+            self.connection.send({Msg.GUESS : [self.chat_box.typed]})
           self.chat_box.typed = ""
         else:
           # gets the key name
@@ -113,6 +120,7 @@ class Game:
       clock = pygame.time.Clock()
       while run:
         clock.tick(60) # 60 fps
+          
         for event in pygame.event.get():
           if event.type == pygame.QUIT:
             run = False
@@ -120,7 +128,7 @@ class Game:
           if event.type == pygame.MOUSEBUTTONDOWN: # one time click
             self.handle_button()
             self.handle_drawing()
-          if event.type == pygame.KEYDOWN:
+          if event.type == pygame.KEYDOWN and not self.drawing:
             self.handle_key(event)
           if pygame.mouse.get_pressed()[0]: # can support dragging
             self.handle_drawing()
@@ -134,56 +142,62 @@ class Game:
         payload[Msg.GET_PLAYERS] = []
         payload[Msg.GET_SCORE] = []
 
-        response = self.connection.send(payload)
-        # get word
-        self.top_bar.set_word(response[str(Msg.GET_WORD)])
+        response = {}
+        if self.connection and not self.game_ended:
+          response = self.connection.send(payload) # need a game over tag to check, since this is blocking
 
-        # send word
-        # response = self.connection.send(Msg.GUESS, [self.text]) 
+        # get round number
+          
+        # get word
+        if str(Msg.GET_WORD) in response: # optimization
+          self.top_bar.set_word(response[str(Msg.GET_WORD)], hidden=not self.drawing and not self.game_ended)
 
         # get chatbox (will update the the word sent)
-        # response = self.connection.send(Msg.GET_CHAT_BOX, [])
-        # response = list(response.values())[0]
-        # self.chat_box.replace(response)
+        if str(Msg.GET_CHAT_BOX) in response:
+          self.chat_box.replace(response[str(Msg.GET_CHAT_BOX)])
 
-        # # grab screen
+        # grab screen
         if str(Msg.GRAB_SCREEN) in response: # optimization
-          print('updating the screen')
           self.screen._scrn = response[str(Msg.GRAB_SCREEN)] 
           self.screen.unzip_screen()
 
-        # # get time
-        self.top_bar.set_time(response[str(Msg.TIME_LEFT)])
+        # get time
+        if str(Msg.TIME_LEFT) in response: # optimization
+          self.top_bar.set_time(response[str(Msg.TIME_LEFT)])
 
-        # # get round
-        # response = self.connection.send(Msg.GET_ROUND, [])
-        # self.top_bar.set_round(list(response.values())[0])
+        # get round
+        if str(Msg.GET_ROUND) in response: # optimization
+          self.round_number = response[str(Msg.GET_ROUND)]
+          self.top_bar.set_round(self.round_number)
 
-        # # get players
-        # response = self.connection.send(Msg.GET_PLAYERS, [])
-        # response = list(response.values())[0]
-        # new_players = []
-        # for player in self.players:
-        #   if player.name in response:
-        #     new_players.append(player)
-        # self.players = new_players
-        # self.leaderboard.players = new_players
+        # get players
+        if str(Msg.GET_PLAYERS) in response: # optimization
+          new_players = []
+          for player in self.players:
+            if player.name in response[str(Msg.GET_PLAYERS)]:
+              new_players.append(player)
+          self.players = new_players
+          self.leaderboard.players = new_players
         
-        # # get score
-        # response = self.connection.send(Msg.GET_SCORE, [])
-        # response = list(response.values())[0]
-        # for player, dx in zip(self.players, response):
-        #   player.update_score(dx)
+        # get score
+        if str(Msg.GET_SCORE) in response: # optimization
+          for player, x in zip(self.players, response[str(Msg.GET_SCORE)]):
+            player.update_score(x)
 
         if self.players[self.round_number-1].name == self.name:
           self.drawing = True
+        else:
+          self.drawing = False
 
         self.render()
+
+        if str(-2) in response:
+          self.game_ended = True
 
       pygame.quit()
 
 
 if __name__ == "__main__":
   pygame.font.init()
-  g = Game()
+  g = Game('Bustin', ['Bustin'])
   g.run()

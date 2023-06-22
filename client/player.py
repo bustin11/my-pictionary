@@ -15,4 +15,7 @@ class Player(object):
   def make_guess(self, guess):
     return self.game.player_make_guess(self, guess)
 
+  def set_score(self, score):
+    self.score = score
+
   
