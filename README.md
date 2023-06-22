@@ -31,6 +31,8 @@ You're going to need to change the IP address in the `client.py` and `server.py`
 - Techniques to reduce payload size.
 - Barrier to ensure the safety of thread order.
 - Game class is like the manager. server and client are the messangers and receiving. And the rest of the classes are extensions like arms of the game class. (OOP)
+- some testing in `test_server.py`
+- chatbox
 
 # Improvements
 - Better UI for loading in the queue.
@@ -40,3 +42,10 @@ You're going to need to change the IP address in the `client.py` and `server.py`
 - Add command ling options like initial time, and min number of players to play
 - Handle disconnections gracefully
 - And way too many to count.
+
+# Client
+![client.png](imgs/client.png)
+
+# Server
+![server.png](imgs/server.png)
+
