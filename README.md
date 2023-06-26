@@ -1,5 +1,5 @@
 # my-pictionary
-A boot-legged version of [https://skribbl.io/](link). Supports multiple players. Uses a client-server model.
+A boot-legged version of [https://skribbl.io/](https://skribbl.io/). Supports multiple players. Uses a client-server model.
 
 ## Requirements
 ```
@@ -43,9 +43,9 @@ You're going to need to change the IP address in the `client.py` and `server.py`
 - Handle disconnections gracefully
 - And way too many to count.
 
-# Client
+# Client (guessing)
 ![client.png](imgs/client.png)
 
-# Server
+# Client (drawing)
 ![server.png](imgs/server.png)
 
